@@ -1,0 +1,27 @@
+name: Python Bot
+
+on:
+  push:
+    branches:
+      - main  # замените на вашу основную ветку
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.11'  # Укажите версию Python
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r Zav.txt # Укажите ваш файл зависимостей, если есть
+
+    - name: Run Python bot
+      run: python kot.py
