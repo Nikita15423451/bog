@@ -59,7 +59,7 @@ model.fit(
     [encoder_input_data, decoder_input_data],
     decoder_output_data.reshape(*decoder_output_data.shape, 1),
     batch_size=64,
-    epochs=10
+    epochs=500
 )
 
 # Использование модели для генерации ответа
