@@ -108,8 +108,9 @@ async def start(message: aiogram.types.Message):
 @dp.message_handler()
 async def handle_messages(message: aiogram.types.Message):
     input_text = message.text.lower()
-    response = generate_response(input_text)
+    response = await generate_response(input_text)  # Добавлено `await` здесь
     await message.answer(response)
+
 
 # Запуск бота
 if __name__ == '__main__':
