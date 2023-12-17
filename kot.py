@@ -8,7 +8,9 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 conversations = [
     ("Привет!", "Привет, как дела?"),
     ("Неплохо, а у тебя?", "У меня все хорошо."),
-    # Другие диалоги...
+    ("Как тебя зовут?", "Адам."), 
+    ("Кто ты?", "Искуственный интелект"), 
+    ("Что ты можешь?", " Много чего"), 
 ]
 
 questions = [x[0] for x in conversations]
