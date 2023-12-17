@@ -57,11 +57,20 @@ model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accur
 model.fit(xs, ys, epochs=5000, verbose=1, batch_size=64)
 
 async def generate_response(seed_text):
-    # Код функции generate_response остается без изменений
+    # Ваш код для генерации ответа на основе обученной модели
+    # seed_text - текст, с которого начинается генерация
+    # Верните сгенерированный текст как ответ
+    return "Результат генерации"
 
 @dp.message_handler()
 async def echo(message: aiogram.types.Message):
-    # Код для обработки сообщений также остается без изменений
+    user_input = message.text  # Получаем текст от пользователя
+    if user_input.lower() == 'exit':
+        await message.reply("Пока!")
+        return
+
+    generated_response = await generate_response(user_input)  # Генерируем ответ на основе введенного текста
+    await message.reply(generated_response)  # Отправляем сгенерированный ответ пользователю
 
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp)
