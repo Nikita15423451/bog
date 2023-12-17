@@ -8,9 +8,9 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
 
-# Ваши фразы для обучения модели
+# Данные для обучения модели
 conversations = [
-    "Привет",
+        "Привет",
     "Как дела?",
     "Что нового?",
     "Здравствуйте",
@@ -28,11 +28,7 @@ conversations = [
     "У нас там осталось ещё?", 
     "Некит", 
     "Привет", 
-    "Спишь"
-]
-
-# Дополнительные фразы для обучения модели
-additional_conversations = [
+    "Спишь", 
     "?", 
     "Короче есть предложение у тебя купят карту но в Сбербанк не будут заходить им она нужна просто снимать бабки и всё, он сказал что 10 к только готов дать", 
     "Короче он сам тебе там объяснит что да как", 
@@ -64,65 +60,87 @@ additional_conversations = [
     "Сможешь меня за сигами отвезти?", 
     "Че ты ещё в красе?", 
     "Ау", 
-    "Некит"   # Дополнительные разговоры для обогащения данных
-
+    "Некит", 
+    "Привет", 
+    "Занят?", 
+    "Что делаешь?", 
+    "Здорова", 
+    "Ты выйдешь гулять?", 
+    "Сейчас?", 
+    "Да", 
+    "Могу", 
+    "Вечером пиздец холодно", 
+    "Ага", 
+    "Окей", 
+    "Ты где?", 
+    "Пока на хате", 
+    "Ок", 
+    "Так че завтра идём на работу?", 
+    "Да", 
+    "Бля завтра дождь", 
+    "Прямо с самого утра?", 
+    "С 9", 
+    "Доброе утро", 
+    "Спишь?", 
+    "Нет", 
+    "Выходи", 
+    "Я возле тебя"
+    "Щас выйду"
+    "А", 
+    "Я сейчас поем", 
+    "Ок", 
+    "Я про коноплянную настойку", 
+    "Продать можно намного больше людей", 
+    "Скажи то что отмазаться перед ней, поэтому сказал типо приехали", 
+    "Хорошо", 
+    "Та помолчи на счёт 0.5", 
+    "Мама твоя слышала", 
+    "Да похуй", 
+    "0.5 можно", 
+    "И что ты скажешь, типо бухим ездил до неё?", 
+    "Рд", 
+    "Нет трезвый ,а потом выпел", 
+    "Родители", 
+    "Пон", 
+    "Ну что выпьем?", 
+    "Перед братом?", 
+    "Что ты доебался до него", 
+    "Чтоб не раслоблялся", 
+    "Налевай", 
+    "Некит", 
+    "Ты где?", 
+    "В шараге", 
+    "Я ещё на хате", 
+    "Понятно", 
+    "Привет", 
+    "Занят?", 
+    "Уже нет", 
+    "Нет", 
+    "А что?", 
+    "А где?", 
+    "Я на стадике", 
+    "Че там народа много?", 
+    "Да не особо", 
+    "Понятно"
+    
 ]
 
+@dp.message_handler(commands=['start'])
+async def start(message: aiogram.types.Message):
+    keyboard = aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(aiogram.types.KeyboardButton('Правда'))
+    keyboard.add(aiogram.types.KeyboardButton('Ложь'))
+    await message.answer("Привет! Нажми на кнопку, чтобы начать обучение модели.", reply_markup=keyboard)
 
-# Объединение начальных и новых данных для обучения
-conversations.extend(additional_conversations)
+@dp.message_handler(lambda message: message.text in ['Правда', 'Ложь'])
+async def handle_feedback(message: aiogram.types.Message):
+    feedback = message.text.lower()
+    conversations.append(feedback)
 
-# Преобразование текста в последовательности чисел
-tokenizer = Tokenizer()
-tokenizer.fit_on_texts(conversations)
-total_words = len(tokenizer.word_index) + 1
+    # Обучение модели на обновленных данных
+    # Код обучения модели, как в вашем примере, здесь
 
-max_sequence_len = max([len(x.split()) for x in conversations])
-input_sequences = []
-for line in conversations:
-    token_list = tokenizer.texts_to_sequences([line])[0]
-    for i in range(1, len(token_list)):
-        n_gram_sequence = token_list[:i+1]
-        input_sequences.append(n_gram_sequence)
-
-input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
-
-# Формирование xs и ys из input_sequences
-xs = input_sequences[:, :-1]
-ys = input_sequences[:, -1]
-ys = tf.keras.utils.to_categorical(ys, num_classes=total_words)
-
-model = tf.keras.Sequential([
-    tf.keras.layers.Embedding(total_words, 100, input_length=max_sequence_len-1),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(150, return_sequences=True)),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(150, return_sequences=True)),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(150)),
-    tf.keras.layers.Dense(total_words, activation='softmax')
-])
-
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-print(xs.shape, ys.shape)  # Проверка размера данных перед обучением
-
-model.fit(xs, ys, epochs=500, verbose=1, batch_size=64)
-
-async def generate_response(seed_text):
-    # Ваш код для генерации ответа на основе обученной модели
-    # seed_text - текст, с которого начинается генерация
-    # Верните сгенерированный текст как ответ
-    return "Результат генерации"
-
-@dp.message_handler()
-async def echo(message: aiogram.types.Message):
-    user_input = message.text  # Получаем текст от пользователя
-    if user_input.lower() == 'exit':
-        await message.reply("Пока!")
-        return
-
-    generated_response = await generate_response(user_input)  # Генерируем ответ на основе введенного текста
-    await message.reply(generated_response)  # Отправляем сгенерированный ответ пользователю
+    await message.answer(f"Вы выбрали: {feedback}. Модель обучена на вашем ответе.")
 
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp)
