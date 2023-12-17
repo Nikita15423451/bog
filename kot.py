@@ -1,95 +1,120 @@
 import aiogram
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# Инициализация бота
+# ... (Код для создания модели seq2seq, обработки данных и функции generate_response)
+
+
+# Подготовка данных
+# Примеры диалогов для обучения модели
+conversations = [
+    ("Привет!", "Привет, как дела?"),
+    ("Неплохо, а у тебя?", "У меня все хорошо."),
+    # Другие диалоги...
+]
+
+# Создание набора вопросов и ответов
+questions = [x[0] for x in conversations]
+answers = [x[1] for x in conversations]
+
+# Токенизация текста
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(questions + answers)
+total_words = len(tokenizer.word_index) + 1
+
+# Преобразование текста в последовательности чисел
+tokenized_questions = tokenizer.texts_to_sequences(questions)
+tokenized_answers = tokenizer.texts_to_sequences(answers)
+
+# Подготовка входных и выходных данных
+max_sequence_len = max([len(x) for x in tokenized_questions + tokenized_answers])
+encoder_input_data = pad_sequences(tokenized_questions, maxlen=max_sequence_len, padding='post')
+decoder_input_data = pad_sequences(tokenized_answers, maxlen=max_sequence_len, padding='post')
+
+# Создание модели seq2seq с механизмом внимания
+embedding_dim = 64
+hidden_units = 128
+
+encoder_inputs = tf.keras.layers.Input(shape=(max_sequence_len,))
+encoder_embedding = tf.keras.layers.Embedding(total_words, embedding_dim, mask_zero=True)(encoder_inputs)
+encoder_lstm = tf.keras.layers.LSTM(hidden_units, return_sequences=True, return_state=True)
+encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding)
+encoder_states = [state_h, state_c]
+
+decoder_inputs = tf.keras.layers.Input(shape=(max_sequence_len,))
+decoder_embedding = tf.keras.layers.Embedding(total_words, embedding_dim, mask_zero=True)(decoder_inputs)
+decoder_lstm = tf.keras.layers.LSTM(hidden_units, return_sequences=True, return_state=True)
+decoder_outputs, _, _ = decoder_lstm(decoder_embedding, initial_state=encoder_states)
+
+attention = tf.keras.layers.Attention()
+attention_output = attention([decoder_outputs, encoder_outputs])
+
+decoder_concat_input = tf.keras.layers.Concatenate(axis=-1)([decoder_outputs, attention_output])
+decoder_dense = tf.keras.layers.Dense(total_words, activation='softmax')
+output = decoder_dense(decoder_concat_input)
+
+model = tf.keras.models.Model([encoder_inputs, decoder_inputs], output)
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Обучение модели
+model.fit([encoder_input_data, decoder_input_data], np.expand_dims(tokenized_answers, -1), batch_size=64, epochs=10)
+
+# Использование модели для генерации ответа
+def generate_response(input_text):
+    input_seq = tokenizer.texts_to_sequences([input_text])
+    input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
+    
+    states_value = encoder_lstm.predict(input_seq)
+    
+    target_seq = np.zeros((1, 1))
+    target_seq[0, 0] = tokenizer.word_index['<start>']
+    
+    stop_condition = False
+    decoded_sentence = ''
+    
+    while not stop_condition:
+        output_tokens, h, c = decoder_lstm.predict([target_seq] + states_value)
+        
+        sampled_token_index = np.argmax(output_tokens[0, -1, :])
+        sampled_word = tokenizer.index_word[sampled_token_index]
+        
+        if sampled_word != '<end>':
+            decoded_sentence += sampled_word + ' '
+            
+        if sampled_word == '<end>' or len(decoded_sentence.split()) >= max_sequence_len:
+            stop_condition = True
+            
+        target_seq = np.zeros((1, 1))
+        target_seq[0, 0] = sampled_token_index
+        
+        states_value = [h, c]
+    
+    return decoded_sentence
+
+# Пример использования модели для генерации ответа
+input_text = "Привет!"
+response = generate_response(input_text)
+print(f"Input: {input_text}\nGenerated Response: {response}")
+
+# Инициализация бота и диспетчера
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
-
-# Переменные для обучения модели
-conversations = []
-
-def train_model():
-    global conversations
-    
-    # Здесь предполагается загрузка и предобработка ваших реальных данных
-    # Предположим, что у вас есть файл с текстовыми сообщениями
-
-    # Пример чтения данных из файла (замените этот блок кода на ваш реальный процесс загрузки данных)
-    with open('bat.txt', 'r', encoding='utf-8') as file:
-        conversations = file.readlines()
-    
-    # Ваш код предобработки текстовых данных
-    # Например, токенизация, очистка текста от шума, приведение к нижнему регистру и т.д.
-
-    labels = np.array([1 if x == 'Правда\n' else 0 for x in conversations])
-    tokenizer = Tokenizer()
-    tokenizer.fit_on_texts(conversations)
-    total_words = len(tokenizer.word_index) + 1
-    input_sequences = tokenizer.texts_to_sequences(conversations)
-    max_sequence_len = max([len(seq) for seq in input_sequences])
-    input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
-
-    model = tf.keras.Sequential([
-        tf.keras.layers.Embedding(total_words, 64, input_length=max_sequence_len),
-        tf.keras.layers.LSTM(128, return_sequences=True),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.LSTM(128),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(input_sequences, labels, epochs=10, batch_size=32)
-    return model
-
-# Обучение модели при запуске скрипта
-trained_model = train_model()
 
 # Обработчик команды /start
 @dp.message_handler(commands=['start'])
 async def start(message: aiogram.types.Message):
-    keyboard = aiogram.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(aiogram.types.KeyboardButton('Правда'))
-    keyboard.add(aiogram.types.KeyboardButton('Ложь'))
-    await message.answer("Привет! Нажми на кнопку, чтобы начать обучение модели.", reply_markup=keyboard)
-
-# Обработчик ответа пользователя "Правда" или "Ложь"
-@dp.message_handler(lambda message: message.text in ['Правда', 'Ложь'])
-async def handle_feedback(message: aiogram.types.Message):
-    global trained_model
-    feedback = message.text.lower()
-    conversations.append(feedback)
-
-    # Переобучение модели при получении новых данных
-    trained_model = train_model()
-
-    await message.answer(f"Вы выбрали: {feedback}. Модель обучена на вашем ответе.")
+    await message.answer("Привет! Чтобы начать общение, отправьте свое сообщение.")
 
 # Обработчик всех остальных сообщений от пользователя
 @dp.message_handler()
-async def handle_other_messages(message: aiogram.types.Message):
-    global trained_model
-    if trained_model is not None:
-        tokenizer = Tokenizer()
-        tokenizer.fit_on_texts(conversations)
-        max_sequence_len = max([len(seq.split()) for seq in conversations])
+async def handle_messages(message: aiogram.types.Message):
+    global model
+    input_text = message.text.lower()
+    response = generate_response(input_text)
+    await message.answer(response)
 
-        user_input = message.text.lower()
-        encoded_input = tokenizer.texts_to_sequences([user_input])
-        padded_input = pad_sequences(encoded_input, maxlen=max_sequence_len, padding='pre')
-
-        prediction = trained_model.predict(padded_input)
-        # Ваша логика обработки предсказания и генерации ответа
-        # Например:
-        if prediction > 0.5:
-            response = "Правда"
-        else:
-            response = "Ложь"
-
-        await message.answer(f"Модель предсказывает: {response}")
-
+# Запуск бота
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp)
