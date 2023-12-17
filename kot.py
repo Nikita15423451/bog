@@ -5,7 +5,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # Инициализация бота
-bot = aiogram.Bot(token="6330276709:AAGJWL3LpSrKlOG-Xya6lhPUG-p9uN-C9nQ")
+bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
 
 # Ваши фразы для обучения модели
@@ -55,18 +55,47 @@ model.fit(xs, ys, epochs=5000, verbose=1, batch_size=64)
 
 async def generate_response(seed_text):
     generated_response = seed_text
+    input_sequence = tokenizer.texts_to_sequences([generated_response])[0]
+    input_sequence = np.array(pad_sequences([input_sequence], maxlen=max_sequence_len-1, padding='pre'))
+
+    predicted_word = None
+
     while True:
-        input_sequence = tokenizer.texts_to_sequences([generated_response])[0]
-        input_sequence = np.array(pad_sequences([input_sequence], maxlen=max_sequence_len-1, padding='pre'))
         predicted_output = model.predict(input_sequence)
-        
         predicted_word_index = np.argmax(predicted_output, axis=-1)[0]
         predicted_word = tokenizer.index_word[predicted_word_index]
 
         generated_response += " " + predicted_word
-        
-        if predicted_word == '.' or len(generated_response.split()) >= 30:  # Условие останова
+
+        if predicted_word == '.' or len(generated_response.split()) >= 30:
             break
+
+        # Добавляем новые слова в токенизатор
+        if predicted_word not in tokenizer.word_index:
+            tokenizer.word_index[predicted_word] = len(tokenizer.word_index) + 1
+            total_words = len(tokenizer.word_index) + 1
+
+        # Обновляем входную последовательность
+        input_sequence = np.array(pad_sequences([input_sequence[0].tolist() + [predicted_word_index]], maxlen=max_sequence_len-1, padding='pre'))
+
+    # Обучение модели на новых фразах
+    if predicted_word != '.':
+        new_conversation = [seed_text + generated_response]
+        additional_conversations.extend(new_conversation)
+        tokenizer.fit_on_texts(new_conversation)
+        input_sequences = []
+        for line in additional_conversations:
+            token_list = tokenizer.texts_to_sequences([line])[0]
+            for i in range(1, len(token_list)):
+                n_gram_sequence = token_list[:i+1]
+                input_sequences.append(n_gram_sequence)
+
+        input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
+        xs, ys = input_sequences[:, :-1], input_sequences[:, -1]
+        ys = tf.keras.utils.to_categorical(ys, num_classes=total_words)
+
+        # Переобучаем модель
+        model.fit(xs, ys, epochs=1, verbose=0, batch_size=64)
 
     return generated_response
 
