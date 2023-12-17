@@ -8,13 +8,13 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
 
-# Данные для обучения модели
+# Переменные для обучения модели
 conversations = []
 
 def train_model():
     global conversations
     
-    # Здесь загружаются и предобрабатываются ваши реальные данные
+    # Здесь предполагается загрузка и предобработка ваших реальных данных
     # Предположим, что у вас есть файл с текстовыми сообщениями
 
     # Пример чтения данных из файла (замените этот блок кода на ваш реальный процесс загрузки данных)
@@ -59,12 +59,12 @@ async def start(message: aiogram.types.Message):
 # Обработчик ответа пользователя "Правда" или "Ложь"
 @dp.message_handler(lambda message: message.text in ['Правда', 'Ложь'])
 async def handle_feedback(message: aiogram.types.Message):
+    global trained_model
     feedback = message.text.lower()
     conversations.append(feedback)
 
-    # Обучение модели при получении новых данных
-    global trained_model
-    trained_model = train_model()  # Переобучение модели на новых данных
+    # Переобучение модели при получении новых данных
+    trained_model = train_model()
 
     await message.answer(f"Вы выбрали: {feedback}. Модель обучена на вашем ответе.")
 
