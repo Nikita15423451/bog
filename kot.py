@@ -4,36 +4,32 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
-# ... (Код для создания модели seq2seq, обработки данных и функции generate_response)
-
-
-# Подготовка данных
-# Примеры диалогов для обучения модели
+# Подготовка данных для обучения seq2seq модели
 conversations = [
     ("Привет!", "Привет, как дела?"),
     ("Неплохо, а у тебя?", "У меня все хорошо."),
     # Другие диалоги...
 ]
 
-# Создание набора вопросов и ответов
 questions = [x[0] for x in conversations]
 answers = [x[1] for x in conversations]
 
-# Токенизация текста
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(questions + answers)
 total_words = len(tokenizer.word_index) + 1
 
-# Преобразование текста в последовательности чисел
 tokenized_questions = tokenizer.texts_to_sequences(questions)
 tokenized_answers = tokenizer.texts_to_sequences(answers)
 
-# Подготовка входных и выходных данных
 max_sequence_len = max([len(x) for x in tokenized_questions + tokenized_answers])
 encoder_input_data = pad_sequences(tokenized_questions, maxlen=max_sequence_len, padding='post')
 decoder_input_data = pad_sequences(tokenized_answers, maxlen=max_sequence_len, padding='post')
+decoder_output_data = np.zeros_like(decoder_input_data)
 
-# Создание модели seq2seq с механизмом внимания
+for i, seq in enumerate(tokenized_answers):
+    decoder_output_data[i, 0:len(seq)] = seq
+
+# Создание модели seq2seq
 embedding_dim = 64
 hidden_units = 128
 
@@ -58,8 +54,13 @@ output = decoder_dense(decoder_concat_input)
 model = tf.keras.models.Model([encoder_inputs, decoder_inputs], output)
 model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-# Обучение модели
-model.fit([encoder_input_data, decoder_input_data], np.expand_dims(tokenized_answers, -1), batch_size=64, epochs=10)
+# Обучение модели seq2seq
+model.fit(
+    [encoder_input_data, decoder_input_data],
+    decoder_output_data.reshape(*decoder_output_data.shape, 1),
+    batch_size=64,
+    epochs=10
+)
 
 # Использование модели для генерации ответа
 def generate_response(input_text):
@@ -93,24 +94,16 @@ def generate_response(input_text):
     
     return decoded_sentence
 
-# Пример использования модели для генерации ответа
-input_text = "Привет!"
-response = generate_response(input_text)
-print(f"Input: {input_text}\nGenerated Response: {response}")
-
-# Инициализация бота и диспетчера
+# Инициализация бота и взаимодействие с ним
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
 
-# Обработчик команды /start
 @dp.message_handler(commands=['start'])
 async def start(message: aiogram.types.Message):
     await message.answer("Привет! Чтобы начать общение, отправьте свое сообщение.")
 
-# Обработчик всех остальных сообщений от пользователя
 @dp.message_handler()
 async def handle_messages(message: aiogram.types.Message):
-    global model
     input_text = message.text.lower()
     response = generate_response(input_text)
     await message.answer(response)
