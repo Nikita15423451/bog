@@ -5,7 +5,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # Инициализация бота
-bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
+bot = aiogram.Bot(token="YOUR_BOT_TOKEN_HERE")
 dp = aiogram.Dispatcher(bot)
 
 # Ваши фразы для обучения модели
@@ -36,11 +36,22 @@ for line in conversations:
 
 input_sequences = np.array(pad_sequences(input_sequences, maxlen=max_sequence_len, padding='pre'))
 
+# Проверка данных перед обучением
+if input_sequences.size == 0:
+    print("Данные для обучения пустые. Пожалуйста, добавьте данные для обучения.")
+    exit()
+
 # Формирование xs и ys из input_sequences
 xs = input_sequences[:, :-1]
 ys = input_sequences[:, -1]
 ys = tf.keras.utils.to_categorical(ys, num_classes=total_words)
 
+# Проверка размерности данных перед обучением
+if xs.size == 0 or ys.size == 0:
+    print("Формат данных для обучения некорректен. Пожалуйста, проверьте данные перед обучением.")
+    exit()
+
+# Определение модели
 model = tf.keras.Sequential([
     tf.keras.layers.Embedding(total_words, 100, input_length=max_sequence_len-1),
     tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(150, return_sequences=True)),
@@ -55,6 +66,11 @@ model = tf.keras.Sequential([
 
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 model.fit(xs, ys, epochs=5000, verbose=1, batch_size=64)
+
+# Остальной код для бота
+# ...
+
+
 
 async def generate_response(seed_text):
     # Ваш код для генерации ответа на основе обученной модели
