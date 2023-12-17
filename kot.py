@@ -65,11 +65,11 @@ model.fit(
 )
 
 # Использование модели для генерации ответа
-def generate_response(input_text):
+async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
     
-    states_value = encoder_lstm.predict(input_seq)
+    states_value = model.layers[4].predict(input_seq)  # Здесь выбираем слой LSTM из модели
     
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
@@ -78,7 +78,7 @@ def generate_response(input_text):
     decoded_sentence = ''
     
     while not stop_condition:
-        output_tokens, h, c = decoder_lstm.predict([target_seq] + states_value)
+        output_tokens, h, c = model.layers[5].predict([target_seq] + states_value)  # Здесь выбираем другой слой LSTM
         
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer.index_word[sampled_token_index]
@@ -95,6 +95,7 @@ def generate_response(input_text):
         states_value = [h, c]
     
     return decoded_sentence
+
 
 # Инициализация бота и взаимодействие с ним
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
