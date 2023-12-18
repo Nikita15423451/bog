@@ -20,6 +20,11 @@ tokenizer = Tokenizer()
 tokenizer.fit_on_texts(questions + answers)
 total_words = len(tokenizer.word_index) + 1
 
+# Добавление <start> и <end> в словарь токенизатора
+tokenizer.word_index['<start>'] = total_words
+tokenizer.word_index['<end>'] = total_words + 1
+total_words += 2
+
 tokenized_questions = tokenizer.texts_to_sequences(questions)
 tokenized_answers = tokenizer.texts_to_sequences(answers)
 
