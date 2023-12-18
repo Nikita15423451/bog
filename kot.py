@@ -37,6 +37,8 @@ max_encoder_seq_length = max([len(text.split()) for text in encoder_texts])
 
 tokenizer_decoder = Tokenizer()
 tokenizer_decoder.fit_on_texts(decoder_texts)
+if '\t' not in tokenizer_decoder.word_index:
+    tokenizer_decoder.word_index['\t'] = len(tokenizer_decoder.word_index) + 1
 num_decoder_tokens = len(tokenizer_decoder.word_index) + 1
 max_decoder_seq_length = max([len(text.split()) for text in decoder_texts])
 
@@ -131,7 +133,6 @@ async def decode_sequence(input_seq):
 
     return decoded_sentence
 
-# Создание экземпляра бота и диспетчера
 # Создание экземпляра бота и диспетчера
 bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')  # Замените 'YOUR_BOT_TOKEN' на токен вашего бота
 dp = Dispatcher(bot)
