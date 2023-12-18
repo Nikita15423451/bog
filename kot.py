@@ -103,23 +103,25 @@ async def generate_response(input_text):
         # Предсказание следующего слова из декодера
         output_tokens, h, c = decoder_model.predict([target_seq, h, c])
 
+        # Получение индекса слова с наибольшей вероятностью
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
+
+        # Получение слова по индексу из словаря
         sampled_word = tokenizer.index_word.get(sampled_token_index, '')
 
-        # Обработка неизвестных слов
+        # Обработка неизвестных слов и остановка
         if sampled_word != '<end>' and sampled_word != '':
             decoded_sentence.append(sampled_word)
 
         if sampled_word == '<end>' or len(decoded_sentence) >= max_sequence_len:
             stop_condition = True
 
+        # Обновление последовательности для декодера
         target_seq = np.zeros((1, 1))
-        if sampled_token_index < total_words:
-            target_seq[0, 0] = sampled_token_index
-        else:
-            target_seq[0, 0] = tokenizer.word_index['<end>']
+        target_seq[0, 0] = sampled_token_index
 
     return ' '.join(decoded_sentence)
+
 
 
 
