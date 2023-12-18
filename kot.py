@@ -1,4 +1,4 @@
-import aiogram
+importimport aiogram
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
@@ -24,6 +24,13 @@ total_words = len(tokenizer.word_index) + 1
 tokenizer.word_index['<start>'] = total_words
 tokenizer.word_index['<end>'] = total_words + 1
 total_words += 2
+
+# Добавим эквивалент для индекса 57
+tokenizer.index_word[57] = 'новое_слово'
+
+# Изменяем индексы, добавив два новых слова
+tokenizer.word_index['новое_слово'] = 57
+total_words += 1
 
 tokenized_questions = tokenizer.texts_to_sequences(questions)
 tokenized_answers = tokenizer.texts_to_sequences(answers)
@@ -107,7 +114,7 @@ async def generate_response(input_text):
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
         # Получение слова по индексу из словаря
-        sampled_word = tokenizer.index_word.get(sampled_token_index, '')
+        sampled_word = tokenizer.index_word.get(sampled_token_index)
 
         # Обработка неизвестных слов и остановка
         if sampled_word != '<end>' and sampled_word != '':
@@ -121,10 +128,6 @@ async def generate_response(input_text):
         target_seq[0, 0] = sampled_token_index
 
     return ' '.join(decoded_sentence)
-
-
-
-
 
 # Инициализация бота и обработка сообщений
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
