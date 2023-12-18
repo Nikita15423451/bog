@@ -24,12 +24,10 @@ decoder_texts = [
     # Дополнительные предложения...
 ]
 
-# Генерация большого количества предложений для обогащения словаря
 for i in range(100):
     encoder_texts.append(f"Example input sentence {i}")
     decoder_texts.append(f"Example target sentence {i}")
 
-# Определение параметров модели
 tokenizer_encoder = Tokenizer()
 tokenizer_encoder.fit_on_texts(encoder_texts)
 num_encoder_tokens = len(tokenizer_encoder.word_index) + 1
@@ -40,15 +38,12 @@ tokenizer_decoder.fit_on_texts(decoder_texts)
 num_decoder_tokens = len(tokenizer_decoder.word_index) + 1
 max_decoder_seq_length = max([len(text.split()) for text in decoder_texts])
 
-# Преобразование текстов в последовательности чисел (токены)
 encoder_sequences = tokenizer_encoder.texts_to_sequences(encoder_texts)
 decoder_sequences = tokenizer_decoder.texts_to_sequences(decoder_texts)
 
-# Добавление паддинга для равной длины последовательностей
 encoder_input_data = pad_sequences(encoder_sequences, maxlen=max_encoder_seq_length, padding='post')
 decoder_input_data = pad_sequences(decoder_sequences, maxlen=max_decoder_seq_length, padding='post')
 
-# Создание decoder_output_data (для обучения модели)
 decoder_output_data = np.zeros((len(decoder_sequences), max_decoder_seq_length, num_decoder_tokens), dtype='float32')
 
 for i, seq in enumerate(decoder_sequences):
@@ -56,8 +51,7 @@ for i, seq in enumerate(decoder_sequences):
         if j > 0:
             decoder_output_data[i][j - 1][token] = 1.0
 
-# Создание модели seq2seq
-latent_dim = 256  # Примерный размер скрытого слоя
+latent_dim = 256
 
 encoder_inputs = Input(shape=(None,))
 encoder_embedding = Embedding(num_encoder_tokens, latent_dim, mask_zero=True)(encoder_inputs)
@@ -77,13 +71,13 @@ model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=50, validation_split=0.2)
 
-# Определение функции decode_sequence
+def decode_sequence(input_seq):
+    # ... (Ваша логика для генерации ответа на основе модели seq2seq)
+    return decoded_sentence
 
-# Создание экземпляра бота и диспетчера
 bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
 dp = Dispatcher(bot)
 
-# Функция для обработки входящих текстовых сообщений
 @dp.message_handler(content_types=ContentType.TEXT)
 async def generate_response(message: types.Message):
     input_text = message.text
@@ -93,9 +87,7 @@ async def generate_response(message: types.Message):
 
     response_text = f"Input: {input_text}\nResponse: {decoded_sentence}"
 
-    # Отправка ответа обратно пользователю
     await message.answer(response_text)
 
-# Запуск бота
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp, skip_updates=True)
