@@ -114,7 +114,7 @@ async def generate_response(input_text):
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
         # Получение слова по индексу из словаря
-        sampled_word = tokenizer.index_word.get(sampled_token_index)
+        sampled_word = tokenizer.index_word.get(sampled_token_index, '')
 
         # Обработка неизвестных слов и остановка
         if sampled_word != '<end>' and sampled_word != '':
@@ -128,6 +128,23 @@ async def generate_response(input_text):
         target_seq[0, 0] = sampled_token_index
 
     return ' '.join(decoded_sentence)
+
+
+# Обновление токенизатора после изменения словаря
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(questions + answers)
+total_words = len(tokenizer.word_index) + 1
+
+tokenizer.word_index['<start>'] = total_words
+tokenizer.word_index['<end>'] = total_words + 1
+total_words += 2
+
+# Пересоздание модели seq2seq и последующее обучение
+# ...
+
+# Инициализация бота и обработка сообщений
+# ...
+
 
 # Инициализация бота и обработка сообщений
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
