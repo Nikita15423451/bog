@@ -102,11 +102,7 @@ async def decode_sequence(input_seq):
         output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        sampled_word = None
-        for word, index in tokenizer_decoder.word_index.items():
-            if index == sampled_token_index:
-                sampled_word = word
-                break
+        sampled_word = tokenizer_decoder.index_word.get(sampled_token_index, None)
 
         if sampled_word is not None:
             if sampled_word == '\n':
@@ -123,6 +119,7 @@ async def decode_sequence(input_seq):
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
