@@ -98,7 +98,7 @@ async def generate_response(input_text):
     target_seq[0, 0] = tokenizer.word_index['<start>']
 
     stop_condition = False
-    decoded_sentence = ''
+    decoded_sentence = []
 
     while not stop_condition:
         # Предсказание следующего слова из декодера
@@ -114,9 +114,9 @@ async def generate_response(input_text):
 
         # Обработка неизвестных слов
         if sampled_word != '<end>' and sampled_word != '':
-            decoded_sentence += sampled_word + ' '
+            decoded_sentence.append(sampled_word)
 
-        if sampled_word == '<end>' or len(decoded_sentence.split()) >= max_sequence_len:
+        if sampled_word == '<end>' or len(decoded_sentence) >= max_sequence_len:
             stop_condition = True
 
         target_seq = np.zeros((1, 1))
@@ -124,15 +124,10 @@ async def generate_response(input_text):
 
         states_value = [h, c]
 
-    return decoded_sentence
+    return ' '.join(decoded_sentence)
 
 
-
-
-
-
-
-# Инициализация бота и взаимодействие с ним
+# Инициализация бота и обработка сообщений
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
 
