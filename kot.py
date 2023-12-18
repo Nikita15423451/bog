@@ -107,10 +107,11 @@ async def generate_response(input_text):
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
         # Проверка на то, что индекс в пределах словаря
-        if sampled_token_index < total_words:
-            sampled_word = tokenizer.index_word.get(sampled_token_index, '')  # Получение слова из индекса
-        else:
-            sampled_word = ''
+        if sampled_token_index < total_words - 1:
+    sampled_word = tokenizer.index_word.get(sampled_token_index, '')
+else:
+    sampled_word = ''
+
 
         # Обработка неизвестных слов
         if sampled_word != '<end>' and sampled_word != '':
