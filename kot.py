@@ -104,7 +104,10 @@ async def generate_response(input_text):
         output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        
+
+        if sampled_token_index >= total_words:
+            sampled_token_index = total_words - 1  # Обрезаем индекс, если он превышает размер словаря
+
         if sampled_token_index in tokenizer.index_word:
             sampled_word = tokenizer.index_word[sampled_token_index]
         else:
@@ -122,6 +125,7 @@ async def generate_response(input_text):
         states_value = [h, c]
 
     return decoded_sentence
+
 
 # Инициализация бота и взаимодействие с ним
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
