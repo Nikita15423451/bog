@@ -10,7 +10,7 @@ conversations = [
     ("Неплохо, а у тебя?", "У меня все хорошо."),
     ("Как тебя зовут?", "Адам."), 
     ("Кто ты?", "Искуственный интелект"), 
-    ("Что ты можешь?", "Много чего")
+    ("Что ты можешь?", "Много чего"), 
 ]
 
 questions = [x[0] for x in conversations]
@@ -104,9 +104,11 @@ async def generate_response(input_text):
         output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-        sampled_word = tokenizer.index_word[sampled_token_index]
         
-
+        if sampled_token_index in tokenizer.index_word:
+            sampled_word = tokenizer.index_word[sampled_token_index]
+        else:
+            sampled_word = '<unknown>'
 
         if sampled_word != '<end>':
             decoded_sentence += sampled_word + ' '
@@ -121,12 +123,6 @@ async def generate_response(input_text):
 
     return decoded_sentence
 
-# ... (ваш предыдущий код остается без изменений)
-
-
-
-
-
 # Инициализация бота и взаимодействие с ним
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
@@ -140,7 +136,6 @@ async def handle_messages(message: aiogram.types.Message):
     input_text = message.text.lower()
     response = await generate_response(input_text)
     await message.answer(response)
-
 
 # Запуск бота
 if __name__ == '__main__':
