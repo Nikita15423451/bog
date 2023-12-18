@@ -112,7 +112,6 @@ async def generate_response(input_text):
         else:
             sampled_word = ''
 
-
         # Обработка неизвестных слов
         if sampled_word != '<end>' and sampled_word != '':
             decoded_sentence.append(sampled_word)
@@ -121,11 +120,15 @@ async def generate_response(input_text):
             stop_condition = True
 
         target_seq = np.zeros((1, 1))
-        target_seq[0, 0] = sampled_token_index
+        if sampled_token_index < total_words:
+            target_seq[0, 0] = sampled_token_index
+        else:
+            target_seq[0, 0] = tokenizer.word_index['<end>']
 
         states_value = [h, c]
 
     return ' '.join(decoded_sentence)
+
 
 
 # Инициализация бота и обработка сообщений
