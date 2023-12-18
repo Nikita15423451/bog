@@ -162,7 +162,7 @@ decoder_outputs = decoder_dense(decoder_outputs)
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=50, validation_split=0.2)
+model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=1000, validation_split=0.2)
 
 encoder_model = Model(encoder_inputs, encoder_states)
 
