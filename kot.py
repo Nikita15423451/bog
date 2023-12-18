@@ -106,15 +106,13 @@ async def generate_response(input_text):
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
-        if sampled_token_index >= total_words:
-            sampled_token_index = total_words - 1  # Обрезаем индекс, если он превышает размер словаря
-
-        if sampled_token_index in tokenizer.index_word:
-            sampled_word = tokenizer.index_word[sampled_token_index]
+        # Проверяем, находится ли индекс в пределах словаря
+        if sampled_token_index < total_words:
+            sampled_word = tokenizer.index_word.get(sampled_token_index, '')  # Получаем слово по индексу
         else:
-            sampled_word = '<unknown>'
+            sampled_word = ''
 
-        if sampled_word != '<end>':
+        if sampled_word != '<end>' and sampled_word != '':
             decoded_sentence += sampled_word + ' '
 
         if sampled_word == '<end>' or len(decoded_sentence.split()) >= max_sequence_len:
@@ -126,6 +124,7 @@ async def generate_response(input_text):
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 
