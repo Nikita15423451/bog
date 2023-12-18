@@ -87,8 +87,6 @@ decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
 decoder_embedding_pred = Model(decoder_inputs, decoder_embedding)(decoder_inputs)
 
-
-
 decoder_outputs_pred, state_h_pred, state_c_pred = decoder_lstm(
     decoder_embedding_pred, initial_state=decoder_states_inputs)
 decoder_states_pred = [state_h_pred, state_c_pred]
@@ -134,12 +132,14 @@ async def decode_sequence(input_seq):
     return decoded_sentence
 
 # Создание экземпляра бота и диспетчера
-bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
+# Создание экземпляра бота и диспетчера
+bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')  # Замените 'YOUR_BOT_TOKEN' на токен вашего бота
 dp = Dispatcher(bot)
 
 # Функция для обработки текстовых сообщений
 @dp.message_handler(content_types=ContentType.TEXT)
 async def process_text_messages(message: types.Message):
+    input_seq = pad_sequences(tokenizer_encoder.texts_to_sequences([message.text]), maxlen=max_encoder_seq_length, padding='post')
     decoded_sentence = await decode_sequence(input_seq)
     response_text = f"Ваш запрос: {message.text}\nОтвет: {decoded_sentence}"
 
