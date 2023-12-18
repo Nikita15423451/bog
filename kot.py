@@ -10,7 +10,7 @@ conversations = [
     ("Неплохо, а у тебя?", "У меня все хорошо."),
     ("Как тебя зовут?", "Адам."), 
     ("Кто ты?", "Искуственный интелект"), 
-    ("Что ты можешь?", " Много чего"), 
+    ("Что ты можешь?", "Много чего"), 
 ]
 
 questions = [x[0] for x in conversations]
@@ -69,7 +69,7 @@ async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
     
-    states_value = model.layers[4].predict(input_seq)  # Здесь выбираем слой LSTM из модели
+    states_value = model.predict(input_seq)  # Используем model для предсказания, а не слой LSTM
     
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
@@ -78,7 +78,7 @@ async def generate_response(input_text):
     decoded_sentence = ''
     
     while not stop_condition:
-        output_tokens, h, c = model.layers[5].predict([target_seq] + states_value)  # Здесь выбираем другой слой LSTM
+        output_tokens, h, c = model.layers[5].predict([target_seq] + states_value)  # Выбираем другой слой LSTM
         
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer.index_word[sampled_token_index]
@@ -108,7 +108,7 @@ async def start(message: aiogram.types.Message):
 @dp.message_handler()
 async def handle_messages(message: aiogram.types.Message):
     input_text = message.text.lower()
-    response = await generate_response(input_text)  # Добавлено `await` здесь
+    response = await generate_response(input_text)
     await message.answer(response)
 
 
