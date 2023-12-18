@@ -84,6 +84,7 @@ decoder_model = tf.keras.models.Model(
     [decoder_outputs] + decoder_states
 )
 
+
 async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
@@ -105,14 +106,11 @@ async def generate_response(input_text):
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
-        # Игнорируем токены, выходящие за пределы словаря
-        if sampled_token_index >= total_words:
-            sampled_word = ''
+        # Проверяем, находится ли индекс в пределах словаря
+        if sampled_token_index < total_words:
+            sampled_word = tokenizer.index_word.get(sampled_token_index, '')  # Получаем слово по индексу
         else:
-            if sampled_token_index in tokenizer.index_word:
-                sampled_word = tokenizer.index_word[sampled_token_index]
-            else:
-                sampled_word = ''
+            sampled_word = ''
 
         if sampled_word != '<end>' and sampled_word != '':
             decoded_sentence += sampled_word + ' '
