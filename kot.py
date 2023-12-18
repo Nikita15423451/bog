@@ -85,7 +85,8 @@ decoder_state_input_h = Input(shape=(latent_dim,))
 decoder_state_input_c = Input(shape=(latent_dim,))
 decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
-decoder_embedding_pred = decoder_embedding(decoder_inputs)
+decoder_embedding_pred = Model(decoder_inputs, decoder_embedding)(decoder_inputs)
+
 
 
 decoder_outputs_pred, state_h_pred, state_c_pred = decoder_lstm(
