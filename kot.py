@@ -108,9 +108,9 @@ async def generate_response(input_text):
 
         # Проверка на то, что индекс в пределах словаря
         if sampled_token_index < total_words - 1:
-    sampled_word = tokenizer.index_word.get(sampled_token_index, '')
-else:
-    sampled_word = ''
+            sampled_word = tokenizer.index_word.get(sampled_token_index, '')
+        else:
+            sampled_word = ''
 
 
         # Обработка неизвестных слов
