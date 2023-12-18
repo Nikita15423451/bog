@@ -23,7 +23,7 @@ decoder_texts = [
     # Дополнительные предложения...
 ]
 
-for i in range(100):
+for i in range(6):
     encoder_texts.append(f"Пример входного предложения {i}")
     decoder_texts.append(f"Пример целевого предложения {i}")
 
