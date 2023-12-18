@@ -93,7 +93,6 @@ async def generate_response(input_text):
     _, h, c = encoder_model.predict(input_seq)
 
     # Инициализация декодера начальными состояниями
-    states_value = [h, c]
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
 
@@ -102,15 +101,10 @@ async def generate_response(input_text):
 
     while not stop_condition:
         # Предсказание следующего слова из декодера
-        output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
+        output_tokens, h, c = decoder_model.predict([target_seq, h, c])
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
-
-        # Проверка на то, что индекс в пределах словаря
-        if sampled_token_index < total_words - 1:
-            sampled_word = tokenizer.index_word.get(sampled_token_index, '')
-        else:
-            sampled_word = ''
+        sampled_word = tokenizer.index_word.get(sampled_token_index, '')
 
         # Обработка неизвестных слов
         if sampled_word != '<end>' and sampled_word != '':
@@ -125,9 +119,8 @@ async def generate_response(input_text):
         else:
             target_seq[0, 0] = tokenizer.word_index['<end>']
 
-        states_value = [h, c]
-
     return ' '.join(decoded_sentence)
+
 
 
 
