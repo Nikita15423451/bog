@@ -131,6 +131,7 @@ async def generate_response(input_text):
 
 
 
+
 # Инициализация бота и взаимодействие с ним
 bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
 dp = aiogram.Dispatcher(bot)
