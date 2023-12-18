@@ -26,8 +26,8 @@ decoder_texts = [
 
 # Генерация большого количества предложений для обогащения словаря
 for i in range(100):
-    encoder_texts.append(f"Example input sentence {i}")
-    decoder_texts.append(f"Example target sentence {i}")
+    encoder_texts.append(f"Пример входного предложения {i}")
+    decoder_texts.append(f"Пример целевого предложения {i}")
 
 # Определение параметров модели
 tokenizer_encoder = Tokenizer()
@@ -77,11 +77,31 @@ model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=50, validation_split=0.2)
 
-# Определение функции decode_sequence
+# Определение модели encoder для предсказания
+encoder_model = Model(encoder_inputs, encoder_states)
+
+# Определение модели decoder для предсказания
+decoder_state_input_h = Input(shape=(latent_dim,))
+decoder_state_input_c = Input(shape=(latent_dim,))
+decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
+
+decoder_embedding_pred = decoder_embedding(decoder_inputs)
+
+decoder_outputs_pred, state_h_pred, state_c_pred = decoder_lstm(
+    decoder_embedding_pred, initial_state=decoder_states_inputs)
+decoder_states_pred = [state_h_pred, state_c_pred]
+decoder_outputs_pred = decoder_dense(decoder_outputs_pred)
+
+decoder_model = Model(
+    [decoder_inputs] + decoder_states_inputs,
+    [decoder_outputs_pred] + decoder_states_pred
+)
+
+# Функция для декодирования последовательности
 async def decode_sequence(input_seq):
     states_value = encoder_model.predict(input_seq)
     target_seq = np.zeros((1, 1))
-    target_seq[0, 0] = tokenizer_decoder.word_index['\t']  # Замена '\t' токена начала последовательности
+    target_seq[0, 0] = tokenizer_decoder.word_index['\t']  # Токен начала последовательности
 
     stop_condition = False
     decoded_sentence = ''
@@ -89,7 +109,6 @@ async def decode_sequence(input_seq):
     while not stop_condition:
         output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
 
-        # Выбор индекса токена с наибольшей вероятностью
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = None
         for word, index in tokenizer_decoder.word_index.items():
@@ -105,37 +124,26 @@ async def decode_sequence(input_seq):
         if len(decoded_sentence.split()) > max_decoder_seq_length:
             stop_condition = True
 
-        # Обновление последовательности для предсказания следующего токена
         target_seq = np.zeros((1, 1))
         target_seq[0, 0] = sampled_token_index
 
-        # Обновление состояний LSTM
         states_value = [h, c]
 
     return decoded_sentence
-
-# Функция для обработки входящих текстовых сообщений
-async def generate_response(message: types.Message):
-    input_text = message.text
-    input_seq = tokenizer_encoder.texts_to_sequences([input_text])
-    input_seq = pad_sequences(input_seq, maxlen=max_encoder_seq_length, padding='post')
-    decoded_sentence = await decode_sequence(input_seq)
-
-    response_text = f"Input: {input_text}\nResponse: {decoded_sentence}"
-
-    # Отправка ответа обратно пользователю
-    await message.answer(response_text)
 
 # Создание экземпляра бота и диспетчера
 bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
 dp = Dispatcher(bot)
 
-# Функция для обработки входящих сообщений
+# Функция для обработки текстовых сообщений
 @dp.message_handler(content_types=ContentType.TEXT)
 async def process_text_messages(message: types.Message):
-    await generate_response(message)
+    decoded_sentence = await decode_sequence(input_seq)
+    response_text = f"Ваш запрос: {message.text}\nОтвет: {decoded_sentence}"
 
-# Запус
+    # Отправка ответа пользователю
+    await message.answer(response_text)
+
 # Запуск бота
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp, skip_updates=True)
