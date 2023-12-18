@@ -1,83 +1,101 @@
 import aiogram
-import numpy as np
+from aiogram import Bot, types
+from aiogram.dispatcher import Dispatcher
+from aiogram.types import ContentType
 import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, LSTM, Embedding, Dense
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+import numpy as np
 
-# Подготовка данных для обучения seq2seq модели
-conversations = [
-    ("Привет!", "Привет, как дела?"),
-    ("Неплохо, а у тебя?", "У меня все хорошо."),
-    ("Как тебя зовут?", "Адам."), 
-    ("Кто ты?", "Искуственный интелект"), 
-    ("Что ты можешь?", "Много чего"), 
+# Пример данных, включая 100 предложений
+encoder_texts = [
+    'Как дела?',
+    'Привет, что нового?',
+    'Чем занимаешься?',
+    # Дополнительные предложения...
 ]
 
-questions = [x[0] for x in conversations]
-answers = [x[1] for x in conversations]
+decoder_texts = [
+    'Прекрасно!',
+    'Ничего особенного.',
+    'Читаю книгу.',
+    # Дополнительные предложения...
+]
 
-tokenizer = Tokenizer()
-tokenizer.fit_on_texts(questions + answers)
-total_words = len(tokenizer.word_index) + 1
+# Генерация большого количества предложений для обогащения словаря
+for i in range(100):
+    encoder_texts.append(f"Example input sentence {i}")
+    decoder_texts.append(f"Example target sentence {i}")
 
-tokenizer.word_index['<start>'] = total_words
-tokenizer.word_index['<end>'] = total_words + 1
-total_words += 2
+# Определение параметров модели
+tokenizer_encoder = Tokenizer()
+tokenizer_encoder.fit_on_texts(encoder_texts)
+num_encoder_tokens = len(tokenizer_encoder.word_index) + 1
+max_encoder_seq_length = max([len(text.split()) for text in encoder_texts])
 
-# Добавим эквивалент для индекса 57
-tokenizer.index_word[57] = 'новое_слово'
+tokenizer_decoder = Tokenizer()
+tokenizer_decoder.fit_on_texts(decoder_texts)
+num_decoder_tokens = len(tokenizer_decoder.word_index) + 1
+max_decoder_seq_length = max([len(text.split()) for text in decoder_texts])
 
-# Изменяем индексы, добавив два новых слова
-tokenizer.word_index['новое_слово'] = 57
-total_words += 1
+# Преобразование текстов в последовательности чисел (токены)
+encoder_sequences = tokenizer_encoder.texts_to_sequences(encoder_texts)
+decoder_sequences = tokenizer_decoder.texts_to_sequences(decoder_texts)
 
-tokenized_questions = tokenizer.texts_to_sequences(questions)
-tokenized_answers = tokenizer.texts_to_sequences(answers)
+# Добавление паддинга для равной длины последовательностей
+encoder_input_data = pad_sequences(encoder_sequences, maxlen=max_encoder_seq_length, padding='post')
+decoder_input_data = pad_sequences(decoder_sequences, maxlen=max_decoder_seq_length, padding='post')
 
-max_sequence_len = max([len(x) for x in tokenized_questions + tokenized_answers])
-encoder_input_data = pad_sequences(tokenized_questions, maxlen=max_sequence_len, padding='post')
-decoder_input_data = pad_sequences(tokenized_answers, maxlen=max_sequence_len, padding='post')
-decoder_output_data = np.zeros_like(decoder_input_data)
+# Создание decoder_output_data (для обучения модели)
+decoder_output_data = np.zeros((len(decoder_sequences), max_decoder_seq_length, num_decoder_tokens), dtype='float32')
 
-for i, seq in enumerate(tokenized_answers):
-    decoder_output_data[i, 0:len(seq)] = seq
+for i, seq in enumerate(decoder_sequences):
+    for j, token in enumerate(seq):
+        if j > 0:
+            decoder_output_data[i][j - 1][token] = 1.0
 
 # Создание модели seq2seq
-embedding_dim = 64
-hidden_units = 128
+latent_dim = 256  # Примерный размер скрытого слоя
 
-# Остальная часть кода остаётся без изменений
-# ...
+encoder_inputs = Input(shape=(None,))
+encoder_embedding = Embedding(num_encoder_tokens, latent_dim, mask_zero=True)(encoder_inputs)
+encoder_lstm = LSTM(latent_dim, return_state=True)
+encoder_outputs, state_h, state_c = encoder_lstm(encoder_embedding)
+encoder_states = [state_h, state_c]
 
-# Обновление токенизатора после изменения словаря
-tokenizer = Tokenizer()
-tokenizer.fit_on_texts(questions + answers)
-total_words = len(tokenizer.word_index) + 1
+decoder_inputs = Input(shape=(None,))
+decoder_embedding = Embedding(num_decoder_tokens, latent_dim, mask_zero=True)(decoder_inputs)
+decoder_lstm = LSTM(latent_dim, return_sequences=True, return_state=True)
+decoder_outputs, _, _ = decoder_lstm(decoder_embedding, initial_state=encoder_states)
+decoder_dense = Dense(num_decoder_tokens, activation='softmax')
+decoder_outputs = decoder_dense(decoder_outputs)
 
-tokenizer.word_index['<start>'] = total_words
-tokenizer.word_index['<end>'] = total_words + 1
-total_words += 2
+model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
-# Пересоздание модели seq2seq и последующее обучение
-# ...
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=50, validation_split=0.2)
 
-# Инициализация бота и обработка сообщений
-# ...
+# Определение функции decode_sequence
 
-# Инициализация бота и обработка сообщений
-bot = aiogram.Bot(token="6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0")
-dp = aiogram.Dispatcher(bot)
+# Создание экземпляра бота и диспетчера
+bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
+dp = Dispatcher(bot)
 
-@dp.message_handler(commands=['start'])
-async def start(message: aiogram.types.Message):
-    await message.answer("Привет! Чтобы начать общение, отправьте свое сообщение.")
+# Функция для обработки входящих текстовых сообщений
+@dp.message_handler(content_types=ContentType.TEXT)
+async def generate_response(message: types.Message):
+    input_text = message.text
+    input_seq = tokenizer_encoder.texts_to_sequences([input_text])
+    input_seq = pad_sequences(input_seq, maxlen=max_encoder_seq_length, padding='post')
+    decoded_sentence = decode_sequence(input_seq)
 
-@dp.message_handler()
-async def handle_messages(message: aiogram.types.Message):
-    input_text = message.text.lower()
-    response = await generate_response(input_text)
-    await message.answer(response)
+    response_text = f"Input: {input_text}\nResponse: {decoded_sentence}"
+
+    # Отправка ответа обратно пользователю
+    await message.answer(response_text)
 
 # Запуск бота
 if __name__ == '__main__':
-    aiogram.executor.start_polling(dp)
+    aiogram.executor.start_polling(dp, skip_updates=True)
