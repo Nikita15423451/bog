@@ -105,15 +105,16 @@ async def generate_response(input_text):
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
 
+        # Игнорируем токены, выходящие за пределы словаря
         if sampled_token_index >= total_words:
-            sampled_token_index = total_words - 1  # Обрезаем индекс, если он превышает размер словаря
-
-        if sampled_token_index in tokenizer.index_word:
-            sampled_word = tokenizer.index_word[sampled_token_index]
+            sampled_word = ''
         else:
-            sampled_word = '<unknown>'
+            if sampled_token_index in tokenizer.index_word:
+                sampled_word = tokenizer.index_word[sampled_token_index]
+            else:
+                sampled_word = ''
 
-        if sampled_word != '<end>':
+        if sampled_word != '<end>' and sampled_word != '':
             decoded_sentence += sampled_word + ' '
 
         if sampled_word == '<end>' or len(decoded_sentence.split()) >= max_sequence_len:
@@ -125,6 +126,7 @@ async def generate_response(input_text):
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 # Инициализация бота и взаимодействие с ним
