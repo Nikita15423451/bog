@@ -1,5 +1,5 @@
 tensorflow
-keras
+keras==2.7.0
 NumPy
 git+https://github.com/python-telegram-bot/python-telegram-bot.git
 aiogram==2.20
