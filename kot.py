@@ -105,6 +105,8 @@ async def generate_response(input_text):
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer.index_word[sampled_token_index]
+        
+
 
         if sampled_word != '<end>':
             decoded_sentence += sampled_word + ' '
