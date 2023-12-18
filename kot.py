@@ -9,7 +9,6 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import numpy as np
 
-# Пример данных, включая 100 предложений
 encoder_texts = [
     'Как дела?',
     'Привет, что нового?',
@@ -24,12 +23,10 @@ decoder_texts = [
     # Дополнительные предложения...
 ]
 
-# Генерация большого количества предложений для обогащения словаря
 for i in range(100):
     encoder_texts.append(f"Пример входного предложения {i}")
     decoder_texts.append(f"Пример целевого предложения {i}")
 
-# Определение параметров модели
 tokenizer_encoder = Tokenizer()
 tokenizer_encoder.fit_on_texts(encoder_texts)
 num_encoder_tokens = len(tokenizer_encoder.word_index) + 1
@@ -42,15 +39,12 @@ if '\t' not in tokenizer_decoder.word_index:
 num_decoder_tokens = len(tokenizer_decoder.word_index) + 1
 max_decoder_seq_length = max([len(text.split()) for text in decoder_texts])
 
-# Преобразование текстов в последовательности чисел (токены)
 encoder_sequences = tokenizer_encoder.texts_to_sequences(encoder_texts)
 decoder_sequences = tokenizer_decoder.texts_to_sequences(decoder_texts)
 
-# Добавление паддинга для равной длины последовательностей
 encoder_input_data = pad_sequences(encoder_sequences, maxlen=max_encoder_seq_length, padding='post')
 decoder_input_data = pad_sequences(decoder_sequences, maxlen=max_decoder_seq_length, padding='post')
 
-# Создание decoder_output_data (для обучения модели)
 decoder_output_data = np.zeros((len(decoder_sequences), max_decoder_seq_length, num_decoder_tokens), dtype='float32')
 
 for i, seq in enumerate(decoder_sequences):
@@ -58,8 +52,7 @@ for i, seq in enumerate(decoder_sequences):
         if j > 0:
             decoder_output_data[i][j - 1][token] = 1.0
 
-# Создание модели seq2seq
-latent_dim = 256  # Примерный размер скрытого слоя
+latent_dim = 256
 
 encoder_inputs = Input(shape=(None,))
 encoder_embedding = Embedding(num_encoder_tokens, latent_dim, mask_zero=True)(encoder_inputs)
@@ -79,15 +72,13 @@ model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=50, validation_split=0.2)
 
-# Определение модели encoder для предсказания
 encoder_model = Model(encoder_inputs, encoder_states)
 
-# Определение модели decoder для предсказания
 decoder_state_input_h = Input(shape=(latent_dim,))
 decoder_state_input_c = Input(shape=(latent_dim,))
 decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
-decoder_embedding_pred = Model(decoder_inputs, decoder_embedding)(decoder_inputs)
+decoder_embedding_pred = decoder_embedding(decoder_inputs)
 
 decoder_outputs_pred, state_h_pred, state_c_pred = decoder_lstm(
     decoder_embedding_pred, initial_state=decoder_states_inputs)
@@ -99,11 +90,10 @@ decoder_model = Model(
     [decoder_outputs_pred] + decoder_states_pred
 )
 
-# Функция для декодирования последовательности
 async def decode_sequence(input_seq):
     states_value = encoder_model.predict(input_seq)
     target_seq = np.zeros((1, 1))
-    target_seq[0, 0] = tokenizer_decoder.word_index['\t']  # Токен начала последовательности
+    target_seq[0, 0] = tokenizer_decoder.word_index['\t']
 
     stop_condition = False
     decoded_sentence = ''
@@ -118,10 +108,11 @@ async def decode_sequence(input_seq):
                 sampled_word = word
                 break
 
-        if sampled_word == '\n':  # Проверка на символ конца последовательности
-            stop_condition = True
-        else:
-            decoded_sentence += sampled_word + ' '
+        if sampled_word is not None:
+            if sampled_word == '\n':
+                stop_condition = True
+            else:
+                decoded_sentence += sampled_word + ' '
 
         if len(decoded_sentence.split()) > max_decoder_seq_length:
             stop_condition = True
@@ -133,20 +124,16 @@ async def decode_sequence(input_seq):
 
     return decoded_sentence
 
-# Создание экземпляра бота и диспетчера
-bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')  # Замените 'YOUR_BOT_TOKEN' на токен вашего бота
+bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
 dp = Dispatcher(bot)
 
-# Функция для обработки текстовых сообщений
 @dp.message_handler(content_types=ContentType.TEXT)
 async def process_text_messages(message: types.Message):
     input_seq = pad_sequences(tokenizer_encoder.texts_to_sequences([message.text]), maxlen=max_encoder_seq_length, padding='post')
     decoded_sentence = await decode_sequence(input_seq)
     response_text = f"Ваш запрос: {message.text}\nОтвет: {decoded_sentence}"
 
-    # Отправка ответа пользователю
     await message.answer(response_text)
 
-# Запуск бота
 if __name__ == '__main__':
     aiogram.executor.start_polling(dp, skip_updates=True)
