@@ -73,11 +73,12 @@ model.fit(
 async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
-    
-    states_value = model.predict([input_seq, np.zeros((input_seq.shape[0], max_sequence_len))])  
-    
+
+    states_value = model.predict([input_seq, np.zeros((input_seq.shape[0], max_sequence_len))])
+
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
+
     
     stop_condition = False
     decoded_sentence = ''
