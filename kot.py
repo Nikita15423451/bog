@@ -69,7 +69,7 @@ async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
     
-    states_value = model.predict(input_seq)  # Используем model для предсказания, а не слой LSTM
+    states_value = model.predict([input_seq, np.zeros((input_seq.shape[0], max_sequence_len))])  
     
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
@@ -78,7 +78,7 @@ async def generate_response(input_text):
     decoded_sentence = ''
     
     while not stop_condition:
-        output_tokens, h, c = model.layers[5].predict([target_seq] + states_value)  # Выбираем другой слой LSTM
+        output_tokens, h, c = model.layers[5].predict([target_seq] + states_value)
         
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer.index_word[sampled_token_index]
@@ -95,6 +95,7 @@ async def generate_response(input_text):
         states_value = [h, c]
     
     return decoded_sentence
+
 
 
 # Инициализация бота и взаимодействие с ним
