@@ -96,6 +96,7 @@ async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
 
+
     # Получение начальных состояний энкодера
     _, h, c = encoder_model.predict(input_seq)
 
