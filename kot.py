@@ -87,6 +87,7 @@ decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
 
 decoder_embedding_pred = decoder_embedding(decoder_inputs)
 
+
 decoder_outputs_pred, state_h_pred, state_c_pred = decoder_lstm(
     decoder_embedding_pred, initial_state=decoder_states_inputs)
 decoder_states_pred = [state_h_pred, state_c_pred]
