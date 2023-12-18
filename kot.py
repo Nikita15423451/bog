@@ -1,4 +1,4 @@
-importimport aiogram
+import aiogram
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
