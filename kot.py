@@ -74,7 +74,8 @@ async def generate_response(input_text):
     input_seq = tokenizer.texts_to_sequences([input_text])
     input_seq = pad_sequences(input_seq, maxlen=max_sequence_len, padding='post')
 
-    states_value = [np.zeros((1, hidden_units)), np.zeros((1, hidden_units))]  # Инициализация начального состояния LSTM
+    # Получаем начальные состояния из энкодера
+    states_value = encoder_lstm.predict(input_seq)
 
     target_seq = np.zeros((1, 1))
     target_seq[0, 0] = tokenizer.word_index['<start>']
@@ -83,7 +84,8 @@ async def generate_response(input_text):
     decoded_sentence = ''
 
     while not stop_condition:
-        output_tokens, h, c = model.predict([input_seq, target_seq] + states_value)
+        # Предсказываем следующее слово из декодера
+        output_tokens, h, c = decoder_lstm.predict([target_seq] + states_value)
 
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer.index_word[sampled_token_index]
@@ -100,6 +102,7 @@ async def generate_response(input_text):
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 
