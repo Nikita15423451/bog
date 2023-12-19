@@ -205,12 +205,14 @@ async def decode_sequence(input_seq):
         if len(decoded_sentence.split()) > max_decoder_seq_length:
             stop_condition = True
 
+        # Обновляем последовательность целей выбранным токеном
         target_seq = np.zeros((1, 1))
         target_seq[0, 0] = sampled_token_index
 
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 
