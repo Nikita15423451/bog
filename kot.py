@@ -162,7 +162,7 @@ decoder_outputs = decoder_dense(decoder_outputs)
 model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=10000, validation_split=0.2)
+model.fit([encoder_input_data, decoder_input_data], decoder_output_data, batch_size=64, epochs=100, validation_split=0.2)
 
 encoder_model = Model(encoder_inputs, encoder_states)
 
@@ -189,25 +189,22 @@ async def decode_sequence(input_seq):
 
     stop_condition = False
     decoded_sentence = ''
-
     while not stop_condition:
         output_tokens, h, c = decoder_model.predict([target_seq] + states_value)
-
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer_decoder.index_word.get(sampled_token_index, None)
 
-        if sampled_word is not None and sampled_word != '\t' and sampled_word != '\n':
-            decoded_sentence += sampled_word + ' '
-
         if sampled_word == '\n' or len(decoded_sentence.split()) > max_decoder_seq_length:
             stop_condition = True
+        else:
+            decoded_sentence += sampled_word + ' '
 
         target_seq = np.zeros((1, 1))
         target_seq[0, 0] = sampled_token_index
-
         states_value = [h, c]
 
-    return decoded_sentence
+    return decoded_sentence.strip()
+
 
 
 
