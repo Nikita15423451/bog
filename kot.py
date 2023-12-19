@@ -216,6 +216,7 @@ async def decode_sequence(input_seq):
 
 
 
+
 bot = Bot(token='6439522576:AAGBJahBMqhUDlaikziF3Dqm3lEdE4a6mL0')
 dp = Dispatcher(bot)
 
