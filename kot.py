@@ -196,22 +196,19 @@ async def decode_sequence(input_seq):
         sampled_token_index = np.argmax(output_tokens[0, -1, :])
         sampled_word = tokenizer_decoder.index_word.get(sampled_token_index, None)
 
-        if sampled_word is not None:
-            if sampled_word == '\n':
-                stop_condition = True
-            else:
-                decoded_sentence += sampled_word + ' '
+        if sampled_word is not None and sampled_word != '\t' and sampled_word != '\n':
+            decoded_sentence += sampled_word + ' '
 
-        if len(decoded_sentence.split()) > max_decoder_seq_length:
+        if sampled_word == '\n' or len(decoded_sentence.split()) > max_decoder_seq_length:
             stop_condition = True
 
-        # Обновляем последовательность целей выбранным токеном
         target_seq = np.zeros((1, 1))
         target_seq[0, 0] = sampled_token_index
 
         states_value = [h, c]
 
     return decoded_sentence
+
 
 
 
